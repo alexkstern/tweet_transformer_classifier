@@ -47,18 +47,7 @@ def train_model(model, train_loader, validation_loader, optimizer, num_epochs=10
         
         print(f'Epoch {epoch+1}, Training Loss: {total_loss/len(train_loader)}')
         
-        # Validation phase
-        model.eval()
-        total_val_loss = 0
-        with torch.no_grad():
-            for tweets, targets in tqdm(validation_loader, desc=f"Epoch {epoch+1} Validation"):
-                tweets, targets = tweets.to(device), targets.to(device)
-                logits, loss = model(tweets, targets)
-                total_val_loss += loss.item()
-
-        print(f'Epoch {epoch+1}, Validation Loss: {total_val_loss/len(validation_loader)}')
-
-                # Validation phase
+         # Validation phase
         model.eval()
         total_val_loss = 0
         total_accuracy = 0
@@ -80,7 +69,7 @@ def train_model(model, train_loader, validation_loader, optimizer, num_epochs=10
 # Parameters and Data Setup
 dataset_path = "./data/train.csv"
 dataset = TweetDataset(dataset_path)
-batch_size = 4
+batch_size = 16
 train_loader, validation_loader = setup_data_loaders(dataset, batch_size)
 
 # Model Setup
@@ -91,9 +80,11 @@ num_heads = 8
 n_layer = 4
 num_classes = 2
 dropout = 0.1
+lr=3e-4
+num_epochs=5
 
 model = TweetClassifier(vocab_size, n_embd, padding_length, num_heads, n_layer, dropout, num_classes)
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=lr)
 
 # Start Training
-train_model(model, train_loader, validation_loader, optimizer, num_epochs=10)
+train_model(model, train_loader, validation_loader, optimizer, num_epochs)

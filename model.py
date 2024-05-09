@@ -9,6 +9,7 @@ class Block(nn.Module):
         self.norm1 = nn.LayerNorm(n_embd)
         self.norm2 = nn.LayerNorm(n_embd)
         hidden_dim=4*n_embd
+        self.proj = nn.Linear(n_embd,n_embd*3)
         self.mlp = nn.Sequential(
             nn.Linear(n_embd, hidden_dim),
             nn.ReLU(),
@@ -17,8 +18,9 @@ class Block(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        key=query=value=x
-        attn_output, attn_output_weights = self.attn(query, key, value)
+        
+        q,k,v = self.proj(x).chunk(3, dim=-1)
+        attn_output, attn_output_weights = self.attn(q, k, v)
         x = x + self.dropout(attn_output)
         x = x + self.dropout(self.mlp(self.norm1(x)))
         return self.norm2(x)
@@ -28,6 +30,7 @@ class TweetClassifier(nn.Module):
         super().__init__()
         self.token_embedding = nn.Embedding(num_embeddings=vocab_size, embedding_dim=n_embd) 
         self.position_embedding = nn.Embedding(num_embeddings=padding_length, embedding_dim=n_embd)
+        self.norm0 = nn.LayerNorm(n_embd)
         self.blocks=nn.Sequential(*[Block(n_embd, num_heads, dropout) for _ in range(n_layer)])
         self.fnlayernorm=nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd*2, num_classes, bias=False)
@@ -39,6 +42,7 @@ class TweetClassifier(nn.Module):
         positions=torch.arange(T,device=x.device)
         position_embedding = self.position_embedding(positions)
         x=token_embedding+position_embedding
+        x=self.norm0(x)
         x=self.blocks(x)
         x=self.fnlayernorm(x) #(B,T=282,n_embd)
         # Exclude the first token, then take the mean of the sequence
